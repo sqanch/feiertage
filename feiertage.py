@@ -2,6 +2,7 @@
 
 import datetime
 import sys
+import calendar
 
 def berechne_ostersonntag(jahr):
     """
@@ -39,7 +40,7 @@ def erzeuge_ics(jahr, events):
         dtstart = datum.strftime("%Y%m%d")
         # Für ganztägige Events ist das Enddatum exklusiv: daher den nächsten Tag
         dtend = (datum + datetime.timedelta(days=1)).strftime("%Y%m%d")
-        dtstamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        dtstamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         # UID: Entferne Leerzeichen und Sonderzeichen
         uid = f"{name.replace(' ', '').replace('.', '').lower()}_{jahr}@feiertage.de"
     
@@ -54,15 +55,19 @@ def erzeuge_ics(jahr, events):
     ics_lines.append("END:VCALENDAR")
     return "\n".join(ics_lines)
 
+def last_sunday(jahr, monat):
+    return datetime.date(jahr, monat, max(week[-1] for week in calendar.monthcalendar(jahr, monat)))
+
 def main():
     # Abfrage des Jahres (entweder als Programmparameter oder per Eingabe)
-    print("test")
     if len(sys.argv) > 1:
         try:
             jahr = int(sys.argv[1])
         except ValueError:
             print("Bitte geben Sie ein gültiges Jahr als Zahl ein.")
             sys.exit(1)
+    else:
+        jahr = datetime.datetime.now(datetime.timezone.utc).year
 
     # Berechne den Ostersonntag, da mehrere bewegliche Feiertage davon abhängen
     ostersonntag = berechne_ostersonntag(jahr)
@@ -71,6 +76,7 @@ def main():
     feiertage = [
         ("Neujahr", datetime.date(jahr, 1, 1)),
         ("3 Könige", datetime.date(jahr, 1, 6)),
+        ("Sommerzeit", last_sunday(jahr, 3)),
         ("Karfreitag", ostersonntag - datetime.timedelta(days=2)),
         ("Ostersonntag", ostersonntag),
         ("Ostermontag", ostersonntag + datetime.timedelta(days=1)),
@@ -80,6 +86,7 @@ def main():
         ("Pfingstmontag", ostersonntag + datetime.timedelta(days=50)),
         ("Fronleichnam", ostersonntag + datetime.timedelta(days=60)),
         ("Tag der Deutschen Einheit", datetime.date(jahr, 10, 3)),
+        ("Winterzeit", last_sunday(jahr, 10)),
         ("Allerheiligen", datetime.date(jahr, 11,1)),
         ("Heiligabend", datetime.date(jahr, 12, 24)),
         ("1. Weihnachtsfeiertag", datetime.date(jahr, 12, 25)),
